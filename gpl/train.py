@@ -60,6 +60,7 @@ def train(
     use_train_qrels: bool = False,
     gpl_score_function: str = "dot",
     rescale_range: List[float] = None,
+    log_steps: int = 0,
     log_to_wandb: bool = False,
 ):
     #### Assertions ####
@@ -252,12 +253,15 @@ def train(
         log_callback = None
         if log_to_wandb:
             import wandb
-            def wandb_log_callback(training_steps, current_lr, loss_value):
+
+            def wandb_log_callback(train_idx, epoch, training_steps, current_lr, loss_value):
                 wandb.log(
                     {
-                        "train/steps": training_steps,
-                        f"train/learning_rate": current_lr,
-                        f"train/loss": loss_value,
+                        "train/train_objective": train_idx,
+                        "train/epoch": epoch,
+                        "train/training_steps": training_steps,
+                        "train/learning_rate": current_lr[-1],
+                        "train/loss": loss_value,
                     }
                 )
 
@@ -276,6 +280,7 @@ def train(
             output_path=output_dir,
             checkpoint_path=output_dir,
             use_amp=use_amp,
+            log_steps=log_steps,
             log_callback=log_callback,
         )
     else:
@@ -441,5 +446,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--use_train_qrels", action="store_true", default=False)
     parser.add_argument("--log_to_wandb", action="store_true", default=False)
+    parser.add_argument(
+        "--log_steps",
+        type=int,
+        default=0,
+        help="Log every N steps. Should be greater than 0 to enable logging.",
+    )
     args = parser.parse_args()
     train(**vars(args))
