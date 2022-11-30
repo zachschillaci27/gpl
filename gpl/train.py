@@ -60,6 +60,7 @@ def train(
     use_train_qrels: bool = False,
     gpl_score_function: str = "dot",
     rescale_range: List[float] = None,
+    log_to_wandb: bool = False,
 ):
     #### Assertions ####
     assert pooling in [None, "mean", "cls", "max"]
@@ -247,6 +248,21 @@ def train(
             model=model, similarity_fct=gpl_score_function
         )
 
+        # Enable wandb logging if specified
+        log_callback = None
+        if log_to_wandb:
+            import wandb
+            def wandb_log_callback(training_steps, current_lr, loss_value):
+                wandb.log(
+                    {
+                        "train/steps": training_steps,
+                        f"train/learning_rate": current_lr,
+                        f"train/loss": loss_value,
+                    }
+                )
+
+            log_callback = wandb_log_callback
+
         # assert gpl_steps > 1000
         model.fit(
             [
@@ -260,6 +276,7 @@ def train(
             output_path=output_dir,
             checkpoint_path=output_dir,
             use_amp=use_amp,
+            log_callback=log_callback,
         )
     else:
         logger.info("Trained GPL model found. Now skip training")
@@ -423,5 +440,6 @@ if __name__ == "__main__":
         help="Which split to evaluate on",
     )
     parser.add_argument("--use_train_qrels", action="store_true", default=False)
+    parser.add_argument("--log_to_wandb", action="store_true", default=False)
     args = parser.parse_args()
     train(**vars(args))
