@@ -61,7 +61,7 @@ def train(
     gpl_score_function: str = "dot",
     rescale_range: List[float] = None,
     log_steps: int = 0,
-    log_to_wandb: bool = False,
+    log_to_wandb: str = None,
 ):
     #### Assertions ####
     assert pooling in [None, "mean", "cls", "max"]
@@ -251,8 +251,9 @@ def train(
 
         # Enable wandb logging if specified
         log_callback = None
-        if log_to_wandb:
+        if log_to_wandb is not None:
             import wandb
+            wandb.init(project=log_to_wandb)
 
             def wandb_log_callback(train_idx, epoch, training_steps, current_lr, loss_value):
                 wandb.log(
@@ -445,7 +446,12 @@ if __name__ == "__main__":
         help="Which split to evaluate on",
     )
     parser.add_argument("--use_train_qrels", action="store_true", default=False)
-    parser.add_argument("--log_to_wandb", action="store_true", default=False)
+    parser.add_argument(
+        "--log_to_wandb",
+        type=str,
+        default=None,
+        help="Enable wandb logging to project name `log_to_wandb`",
+    )
     parser.add_argument(
         "--log_steps",
         type=int,
